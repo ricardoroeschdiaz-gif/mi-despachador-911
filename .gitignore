@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+firebase-key.json
+*.db
+*.zip
+interactions.jsonl
+mobile_app/build/
+mobile_app/.gradle/
+mobile_app/local.properties

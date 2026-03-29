@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Base de Datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: dispatch_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dispatch_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dispatch_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-dispatch_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dispatch_user} -d ${POSTGRES_DB:-dispatch_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Backend (FastAPI)
+  api:
+    build: .
+    container_name: dispatch_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app  # Solo para desarrollo local (hot-reload), quitar en PRD si no se desea
+
+volumes:
+  postgres_data:
