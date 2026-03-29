@@ -26,7 +26,7 @@ Construir un MVP funcional de un sistema de despacho automático de seguridad (e
 2. **[COMPLETADO] Dashboard UI Base y WebSockets:** Interfaz visual con Leaflet y WebSockets integrados para ver eventos y patrullas moverse fluidamente en tiempo real (event-driven), eliminando el polling saturador.
 3. **[COMPLETADO] Migración a la Nube (GCP):** El backend ya está en Google Cloud Platform y recibe correctamente conexiones desde la aplicación móvil.
 4. **[COMPLETADO] Routing Inteligente:** Se implementó `get_driving_eta` usando la API de OSRM. Ahora el despachador de IA asigna la unidad basándose en tiempo real de conducción y tráfico, no en línea recta (Haversine se mantiene como fallback de seguridad).
-5. **[PENDIENTE] Notificaciones Reales a los Agentes:** Enviar mensajes vía WhatsApp, SMS o Telegram al motorista despachado indicando las coordenadas, la ruta y el motivo del despacho en texto plano o audio. (FCM Push integrado parcialmente, falta refinar canales extra).
+5. **[COMPLETADO] Notificaciones Reales a los Agentes:** Enviar mensajes vía WhatsApp al motorista despachado indicando las coordenadas, la ruta en Google Maps y el motivo del despacho en texto plano, integrado con Twilio Cloud API.
 
 ## 📝 Reglas de Operación (I/O)
 - **Jimmy Night** debe leer este archivo antes de modificar el código del proyecto.

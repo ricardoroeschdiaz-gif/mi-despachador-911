@@ -8,8 +8,44 @@ from firebase_admin import credentials, messaging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.models import Agent, Dispatch, Event
+from twilio.rest import Client
 
 api_key = os.getenv("GEMINI_API_KEY")
+
+# Twilio Credentials
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
+TWILIO_TARGET_NUMBER = os.getenv("TWILIO_TARGET_NUMBER")  # Número del motorista (por ahora uno general para pruebas)
+
+def send_whatsapp_notification(agent: Agent, event_obj: Event, ai_reason: str):
+    """Envía un WhatsApp vía Twilio al motorista despachado con la ruta de Google Maps."""
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_TARGET_NUMBER:
+        print("Twilio no está configurado. Faltan variables en .env")
+        return False
+
+    try:
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        maps_url = f"https://www.google.com/maps/dir/?api=1&destination={event_obj.lat},{event_obj.lon}"
+        
+        msg_body = (
+            f"🚨 *NUEVO DESPACHO AI-911*\n"
+            f"Agente: {agent.name}\n"
+            f"Tipo: *{str(event_obj.event_type).upper()}*\n\n"
+            f"Evaluación IA: {ai_reason}\n\n"
+            f"📍 *Ruta:* {maps_url}"
+        )
+
+        message = client.messages.create(
+            from_=TWILIO_WHATSAPP_NUMBER,
+            body=msg_body,
+            to=TWILIO_TARGET_NUMBER
+        )
+        print(f"WhatsApp enviado a {TWILIO_TARGET_NUMBER} (SID: {message.sid})")
+        return True
+    except Exception as e:
+        print(f"Error enviando WhatsApp: {e}")
+        return False
 
 # Inicializar Firebase Admin SDK (Cargar desde la raíz del proyecto)
 try:
@@ -236,10 +272,14 @@ def process_and_dispatch_raw_event(db: Session, payload: dict):
     dispatch_msg = f"Evento: {event_obj.event_type} | ID: {event_id} | Razón: {ai_reason}"
     push_sent = send_push_notification(nearest_agent, event_obj, dispatch_msg)
 
+    # Enviar WhatsApp por Twilio
+    whatsapp_sent = send_whatsapp_notification(nearest_agent, event_obj, ai_reason)
+
     return {
         "event_id": event_id,
         "dispatched": True,
         "agent": nearest_agent,
         "push_notified": push_sent,
-        "message": f"AI: '{ai_reason}'. Agent {nearest_agent.name} dispatched (ETA: {int(min_eta/60)} min / {chosen_dist:.2f} km). Push sent: {push_sent}"
+        "whatsapp_sent": whatsapp_sent,
+        "message": f"AI: '{ai_reason}'. Agent {nearest_agent.name} dispatched (ETA: {int(min_eta/60)} min / {chosen_dist:.2f} km). Push sent: {push_sent}, WA sent: {whatsapp_sent}"
     }
