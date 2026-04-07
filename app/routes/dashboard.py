@@ -171,6 +171,19 @@ def get_dashboard():
             </div>
         </main>
 
+        <!-- Dispatch Modal -->
+        <div id="dispatch-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex justify-center items-center z-[2000]">
+            <div class="glass p-6 rounded-lg w-96 relative shadow-2xl">
+                <h2 class="text-xl font-bold mb-2 text-blue-400">Despacho Manual</h2>
+                <p id="dispatch-agent-name" class="text-sm text-slate-300 mb-4 font-mono"></p>
+                <textarea id="dispatch-message" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded p-3 text-sm text-white mb-4 focus:border-blue-500 outline-none" placeholder="Motivo o mensaje de la emergencia..."></textarea>
+                <div class="flex gap-2 justify-end mt-2">
+                    <button onclick="closeDispatchModal()" class="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 rounded text-white font-medium transition">Cancelar</button>
+                    <button onclick="submitManualDispatch()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 rounded text-white font-bold transition shadow-lg">Enviar Push</button>
+                </div>
+            </div>
+        </div>
+
         <script>
             // Init Map
             const map = L.map('map').setView([14.6349, -90.5155], 13);
@@ -178,8 +191,50 @@ def get_dashboard():
                 attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
             }).addTo(map);
 
+
             let agentMarkers = {};
             let eventMarkers = {};
+            let selectedAgentId = null;
+
+            function openDispatchModal(id, name) {
+                selectedAgentId = id;
+                document.getElementById('dispatch-agent-name').innerText = `Unidad Destino: ${name}`;
+                document.getElementById('dispatch-message').value = '';
+                document.getElementById('dispatch-modal').classList.remove('hidden');
+            }
+
+            function closeDispatchModal() {
+                document.getElementById('dispatch-modal').classList.add('hidden');
+                selectedAgentId = null;
+            }
+
+            async function submitManualDispatch() {
+                if (!selectedAgentId) return;
+                const msg = document.getElementById('dispatch-message').value;
+                if (!msg) {
+                    alert("Por favor escribe el motivo del despacho.");
+                    return;
+                }
+                
+                try {
+                    const res = await fetch(`/agents/${selectedAgentId}/dispatch_manual`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert(`¡Despacho enviado!\nPush: ${data.push_sent ? 'OK' : 'Fallo'} | WA: ${data.whatsapp_sent ? 'OK' : 'Fallo'}`);
+                        closeDispatchModal();
+                        fetchData();
+                    } else {
+                        alert("Error: " + JSON.stringify(data));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Error conectando con el servidor.");
+                }
+            }
 
             function createCustomIcon(status, isEvent=false) {
                 let className = isEvent ? 'event-marker' : `agent-marker agent-${status}`;
@@ -253,6 +308,9 @@ def get_dashboard():
                                 <button onclick="changeAgentStatus(${agent.id}, 'available')" class="flex-1 text-xs bg-green-600 hover:bg-green-500 py-1 rounded transition text-white">Avail</button>
                                 <button onclick="changeAgentStatus(${agent.id}, 'busy')" class="flex-1 text-xs bg-red-600 hover:bg-red-500 py-1 rounded transition text-white">Busy</button>
                                 <button onclick="changeAgentStatus(${agent.id}, 'offline')" class="flex-1 text-xs bg-slate-600 hover:bg-slate-500 py-1 rounded transition text-white">Off</button>
+                            </div>
+                            <div class="mt-2">
+                                <button onclick="openDispatchModal(${agent.id}, '${agent.name}')" class="w-full text-xs bg-blue-600 hover:bg-blue-500 py-1.5 rounded transition text-white font-bold tracking-wide border border-blue-400/50">🚀 DESPACHAR</button>
                             </div>
                         `;
                         agentsList.appendChild(el);

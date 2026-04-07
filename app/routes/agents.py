@@ -1,18 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
 from app.database.database import get_db
 from app.schemas.schemas import AgentResponse, LocationUpdate, AgentRegistration
-from app.models.models import Agent
+from app.models.models import Agent, Event, Dispatch
 from app.services.websocket_manager import manager
+from app.services.dispatch import send_push_notification, send_whatsapp_notification
 import asyncio
+import uuid
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
 class StatusUpdate(BaseModel):
     status: str
+
+class ManualDispatchPayload(BaseModel):
+    message: str
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 def notify_clients():
     asyncio.create_task(manager.broadcast({"type": "refresh"}))
@@ -67,3 +74,47 @@ def update_agent_status(agent_id: int, status_update: StatusUpdate, background_t
     background_tasks.add_task(notify_clients)
     
     return agent
+
+@router.post("/{agent_id}/dispatch_manual")
+def dispatch_manual(agent_id: int, payload: ManualDispatchPayload, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+        
+    event_lat = payload.lat if payload.lat is not None else agent.lat
+    event_lon = payload.lon if payload.lon is not None else agent.lon
+
+    new_event = Event(
+        event_id=f"MAN-{uuid.uuid4().hex[:6].upper()}",
+        event_type="manual",
+        lat=event_lat,
+        lon=event_lon,
+        priority="high",
+        timestamp=datetime.utcnow()
+    )
+    db.add(new_event)
+    
+    dispatch = Dispatch(
+        event_id=new_event.event_id,
+        agent_id=agent.id,
+        status="assigned",
+        assigned_at=datetime.utcnow()
+    )
+    
+    agent.status = "busy"
+    db.add(dispatch)
+    db.commit()
+    db.refresh(new_event)
+    db.refresh(agent)
+    
+    push_sent = send_push_notification(agent, new_event, payload.message)
+    wa_sent = send_whatsapp_notification(agent, new_event, payload.message)
+    
+    background_tasks.add_task(notify_clients)
+    
+    return {
+        "status": "success",
+        "message": "Manual dispatch sent",
+        "push_sent": push_sent,
+        "whatsapp_sent": wa_sent
+    }
