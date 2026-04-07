@@ -143,30 +143,67 @@ def get_dashboard():
         </header>
 
         <!-- Main Content -->
+        
+        <!-- Main Content -->
         <main class="flex-1 flex p-4 gap-4">
-            <!-- Sidebar: Events -->
-            <div class="w-1/4 glass rounded-lg p-4 flex flex-col">
-                <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">🚨 Live Events</h2>
-                <div id="events-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
-                    <p class="text-slate-400 text-sm italic">Cargando eventos...</p>
+            
+            <!-- Left Panel (Events & AI) -->
+            <div class="w-1/4 flex flex-col gap-4">
+                <div class="glass rounded-lg p-4 flex-1 flex flex-col min-h-[50%]">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">🚨 Live Events</h2>
+                    <div id="events-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                        <p class="text-slate-400 text-sm italic">Cargando eventos...</p>
+                    </div>
+                </div>
+
+                <div class="glass rounded-lg p-4 flex flex-col">
+                    <h2 class="text-xl font-semibold mb-2 border-b border-slate-700 pb-2 text-purple-400">🤖 AI Simulator</h2>
+                    <p class="text-xs text-slate-400 mb-3">Disparar payloads crudos hacia Gemini</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="simulateAlarm('intrusion')" class="bg-purple-900/50 hover:bg-purple-800 border border-purple-500 text-purple-200 text-xs py-2 rounded transition">Intrusión</button>
+                        <button onclick="simulateAlarm('panic')" class="bg-red-900/50 hover:bg-red-800 border border-red-500 text-red-200 text-xs py-2 rounded transition">Pánico</button>
+                        <button onclick="simulateAlarm('battery')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs py-2 rounded transition">Batería</button>
+                        <button onclick="simulateAlarm('fire')" class="bg-orange-900/50 hover:bg-orange-800 border border-orange-500 text-orange-200 text-xs py-2 rounded transition">Fuego</button>
+                    </div>
+                    <div id="ai-sim-result" class="mt-3 text-[10px] font-mono text-slate-400 bg-black/50 p-2 rounded hidden break-words border border-slate-800"></div>
                 </div>
             </div>
 
-            <!-- Map -->
-            <div class="w-2/4 relative">
-                <div id="map"></div>
-                <!-- Status Overlay -->
+            <!-- Center Panel (Map) -->
+            <div class="w-2/4 relative flex flex-col">
+                <div id="map" class="flex-1 rounded-lg"></div>
                 <div class="absolute top-4 right-4 glass p-3 rounded-lg z-[1000] text-sm">
-                    <p class="font-mono text-green-400">⚡ Live Connection</p>
-                    <p class="text-slate-400 text-xs mt-1">Updating every 3s</p>
+                    <p class="font-mono text-green-400">📡 Live Connection</p>
                 </div>
             </div>
 
-            <!-- Sidebar: Agents -->
-            <div class="w-1/4 glass rounded-lg p-4 flex flex-col">
-                <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">👮 Agents Control</h2>
-                <div id="agents-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
-                    <p class="text-slate-400 text-sm italic">Cargando agentes...</p>
+            <!-- Right Panel (Agents & Admin) -->
+            <div class="w-1/4 flex flex-col gap-4">
+                <div class="glass rounded-lg p-4 flex-1 flex flex-col min-h-[50%]">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">👮 Agents Control</h2>
+                    <div id="agents-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                        <p class="text-slate-400 text-sm italic">Cargando agentes...</p>
+                    </div>
+                </div>
+
+                <div class="glass rounded-lg p-4 flex flex-col border border-cyan-900/50">
+                    <h2 class="text-xl font-semibold mb-3 border-b border-slate-700 pb-2 text-cyan-400 flex justify-between items-center">
+                        <span>👥 User Manager</span>
+                    </h2>
+                    <div class="flex gap-2 mb-2">
+                        <input id="new-user-name" type="text" placeholder="Username" class="w-1/2 bg-slate-900 border border-slate-700 text-xs p-2 text-white rounded outline-none focus:border-cyan-500 transition">
+                        <input id="new-user-pwd" type="password" placeholder="Password" class="w-1/2 bg-slate-900 border border-slate-700 text-xs p-2 text-white rounded outline-none focus:border-cyan-500 transition">
+                    </div>
+                    <div class="flex gap-2 mb-3">
+                        <select id="new-user-role" class="w-1/2 bg-slate-900 border border-slate-700 text-xs p-2 text-white rounded outline-none focus:border-cyan-500 transition cursor-pointer">
+                            <option value="dispatcher">Dispatcher</option>
+                            <option value="admin">Admin</option>
+                            <option value="auditor">Auditor</option>
+                            <option value="agent">Motorista</option>
+                        </select>
+                        <input id="new-user-agentid" type="number" placeholder="ID Patrulla" class="w-1/2 bg-slate-900 border border-slate-700 text-xs p-2 text-white rounded outline-none focus:border-cyan-500 transition" title="Solo si el rol es Motorista (Agent)">
+                    </div>
+                    <button onclick="createUser()" class="w-full bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-2 rounded text-xs transition shadow-lg border border-cyan-500/50">Crear Usuario</button>
                 </div>
             </div>
         </main>
@@ -191,6 +228,81 @@ def get_dashboard():
                 attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
             }).addTo(map);
 
+
+
+            // -------- AI SIMULATOR ---------
+            async function simulateAlarm(type) {
+                const resultBox = document.getElementById('ai-sim-result');
+                resultBox.classList.remove('hidden');
+                resultBox.innerHTML = "Llamando a Gemini AI...";
+                
+                // Randomizar coords un poco cerca de zona 10/14
+                const randLat = 14.6 + (Math.random() * 0.05 - 0.025);
+                const randLon = -90.52 + (Math.random() * 0.05 - 0.025);
+
+                const payloadMap = {
+                    'intrusion': { client: "Bodega Principal", zone: "Puerta Trasera", code: "E130", desc: "Burglary Alarm", lat: randLat, lon: randLon },
+                    'panic': { client: "Oficinas Centrales", zone: "Recepción", code: "E120", desc: "Panic Button Pressed", lat: randLat, lon: randLon },
+                    'battery': { client: "Sucursal Norte", zone: "Panel", code: "E302", desc: "Low System Battery", lat: randLat, lon: randLon },
+                    'fire': { client: "Data Center", zone: "Site A", code: "E110", desc: "Fire Alarm", lat: randLat, lon: randLon }
+                };
+
+                try {
+                    const res = await fetch('/events/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadMap[type])
+                    });
+                    const data = await res.json();
+                    
+                    let color = data.dispatched ? 'text-green-400' : 'text-yellow-400';
+                    resultBox.innerHTML = `
+                        <span class="${color}">Dispatched: ${data.dispatched}</span><br>
+                        <span class="text-slate-300">Msg: ${data.message}</span>
+                    `;
+                    fetchData(); // Refrescar UI rápido
+                } catch(e) {
+                    resultBox.innerHTML = `<span class="text-red-500">Error: ${e}</span>`;
+                }
+            }
+
+            // -------- USER MANAGER ---------
+            async function createUser() {
+                const un = document.getElementById('new-user-name').value;
+                const pw = document.getElementById('new-user-pwd').value;
+                const rol = document.getElementById('new-user-role').value;
+                const aid = document.getElementById('new-user-agentid').value;
+
+                if (!un || !pw) {
+                    alert("Falta usuario o password"); return;
+                }
+                
+                const payload = {
+                    username: un,
+                    password: pw,
+                    role: rol,
+                    agent_id: (rol === 'agent' && aid) ? parseInt(aid) : null
+                };
+
+                try {
+                    const res = await fetch('/auth/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const data = await res.json();
+                    if(res.ok) {
+                        alert(`Usuario ${data.username} creado exitosamente con rol ${data.role}`);
+                        document.getElementById('new-user-name').value = '';
+                        document.getElementById('new-user-pwd').value = '';
+                    } else {
+                        alert(`Error: ${data.detail || JSON.stringify(data)}`);
+                    }
+                } catch (e) {
+                    alert("Falla de red: " + e);
+                }
+            }
 
             let agentMarkers = {};
             let eventMarkers = {};

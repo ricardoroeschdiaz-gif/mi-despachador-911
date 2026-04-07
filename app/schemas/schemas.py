@@ -2,6 +2,22 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
+# Nuevos modelos para Usuarios
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str # "admin", "dispatcher", "auditor", "agent"
+    agent_id: Optional[int] = None # Solo si el rol es "agent"
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    role: str
+    agent_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
 class EventCreate(BaseModel):
     event_id: str
     event_type: str
