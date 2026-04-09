@@ -703,13 +703,22 @@ def get_dashboard():
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
                 
+                ws.onopen = function() {
+                    console.log('Tactical link established.');
+                };
+
                 ws.onmessage = function(event) {
                     const data = JSON.parse(event.data);
+                    console.log('Signal received:', data);
                     if (data.type === 'refresh') {
                         fetchData();
                     }
                 };
                 
+                ws.onerror = function(err) {
+                    console.error('Comms error:', err);
+                };
+
                 ws.onclose = function() {
                     console.log('WS link lost. Retrying in 3s...');
                     setTimeout(connectWebSocket, 3000);

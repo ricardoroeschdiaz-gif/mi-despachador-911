@@ -22,6 +22,7 @@ class ManualDispatchPayload(BaseModel):
     lon: Optional[float] = None
 
 def notify_clients():
+    print("📡 Broadcasting refresh signal to all operators...")
     asyncio.create_task(manager.broadcast({"type": "refresh"}))
 
 @router.get("/", response_model=List[AgentResponse])

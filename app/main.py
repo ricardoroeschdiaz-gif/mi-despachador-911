@@ -1,6 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from app.database.database import engine, Base, SessionLocal
 from app.routes import events, agents, dashboard, auth
 from app.models.models import Agent, User
@@ -13,6 +14,15 @@ logger = logging.getLogger(__name__)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Security Dispatch API MVP")
+
+# Habilitar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(events.router)
