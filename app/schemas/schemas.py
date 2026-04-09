@@ -32,6 +32,8 @@ class EventResponse(BaseModel):
     lat: float
     lon: float
     priority: str
+    ai_reason: Optional[str] = None
+    status: str
     timestamp: datetime
 
     class Config:

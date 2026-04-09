@@ -207,6 +207,8 @@ def process_and_dispatch_raw_event(db: Session, payload: dict):
             lat=parsed.get("lat", 14.6349),
             lon=parsed.get("lon", -90.5155),
             priority=parsed.get("priority", "low"),
+            ai_reason=ai_reason,
+            status="active" if should_dispatch else "rejected",
             timestamp=datetime.utcnow()
         )
         db.add(new_event)
@@ -215,6 +217,9 @@ def process_and_dispatch_raw_event(db: Session, payload: dict):
         event_obj = new_event
     else:
         event_obj = existing
+        event_obj.status = "active" if should_dispatch else "rejected"
+        event_obj.ai_reason = ai_reason
+        db.commit()
 
     if not should_dispatch:
         return {

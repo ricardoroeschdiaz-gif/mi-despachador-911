@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -117,4 +117,37 @@ def dispatch_manual(agent_id: int, payload: ManualDispatchPayload, background_ta
         "message": "Manual dispatch sent",
         "push_sent": push_sent,
         "whatsapp_sent": wa_sent
+    }
+
+@router.post("/{agent_id}/report")
+async def upload_report(agent_id: int, photo: UploadFile = File(None), message: str = Form(""), db: Session = Depends(get_db)):
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Cerrar el despacho y borrar el evento activo para limpiar el mapa
+    active_dispatch = db.query(Dispatch).filter(Dispatch.agent_id == agent_id, Dispatch.status == "assigned").first()
+    if active_dispatch:
+        active_dispatch.status = "completed"
+        event_to_clear = db.query(Event).filter(Event.event_id == active_dispatch.event_id).first()
+        if event_to_clear:
+            db.delete(event_to_clear)
+        db.commit()
+
+    # Check if we got a photo
+    filename = None
+    if photo:
+        filename = f"report_{agent_id}_{uuid.uuid4().hex[:8]}.jpg"
+        print(f"Received photo {photo.filename}, mocking save as {filename}")
+        
+    print(f"Report received from {agent.name}: {message}")
+    
+    # Forzar actualización del Web Dashboard
+    asyncio.create_task(manager.broadcast({"type": "refresh"}))
+    
+    return {
+        "status": "success", 
+        "message": "Report uploaded successfully", 
+        "agent": agent.name,
+        "photo_saved": bool(photo)
     }

@@ -33,6 +33,8 @@ class Event(Base):
     lat = Column(Float)
     lon = Column(Float)
     priority = Column(String)
+    ai_reason = Column(String, nullable=True) # Added for history
+    status = Column(String, default="active") # active, resolved, rejected
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 class Dispatch(Base):
