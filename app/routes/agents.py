@@ -21,9 +21,9 @@ class ManualDispatchPayload(BaseModel):
     lat: Optional[float] = None
     lon: Optional[float] = None
 
-def notify_clients():
+async def notify_clients():
     print("📡 Broadcasting refresh signal to all operators...")
-    asyncio.create_task(manager.broadcast({"type": "refresh"}))
+    await manager.broadcast({"type": "refresh"})
 
 @router.get("/", response_model=List[AgentResponse])
 def get_agents(db: Session = Depends(get_db)):

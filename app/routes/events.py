@@ -10,9 +10,9 @@ import asyncio
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
-def notify_clients():
+async def notify_clients():
     print("📡 Broadcasting refresh signal to all operators...")
-    asyncio.create_task(manager.broadcast({"type": "refresh"}))
+    await manager.broadcast({"type": "refresh"})
 
 @router.post("/", response_model=DispatchResponse)
 def receive_event(payload: dict = Body(...), background_tasks: BackgroundTasks = BackgroundTasks(), db: Session = Depends(get_db)):
